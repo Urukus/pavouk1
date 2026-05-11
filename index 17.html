@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AZ Kvíz – Pavouk</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body{
+    background:#f1f5f9;
+    font-family:Arial,sans-serif;
+}
+.round-column{
+    min-width:320px;
+}
+.match{
+    background:white;
+    border-radius:24px;
+    padding:20px;
+    border:2px solid #e2e8f0;
+    box-shadow:0 10px 20px rgba(0,0,0,0.08);
+}
+</style>
+</head>
+<body class="p-6 min-h-screen">
+
+<div class="max-w-7xl mx-auto">
+
+<div class="bg-white rounded-3xl shadow-xl p-8 mb-6">
+<h1 class="text-4xl font-black mb-2">🏆 AZ Kvíz – Turnajový pavouk</h1>
+<p class="text-slate-600 text-lg">Interaktivní živý pavouk pro školní turnaj</p>
+</div>
+
+<div class="bg-white rounded-3xl shadow-xl p-6 mb-8">
+<div class="flex flex-col lg:flex-row gap-4 lg:items-end">
+
+<div class="flex-1">
+<label class="block font-bold mb-2 uppercase text-slate-600 text-sm">Počet žáků</label>
+
+<input
+id="count"
+type="number"
+min="2"
+max="64"
+value="16"
+class="w-full border-2 border-slate-300 rounded-2xl p-4 text-2xl font-bold"
+/>
+</div>
+
+<button
+onclick="generateBracket()"
+class="bg-slate-900 hover:bg-black text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg"
+>
+🎲 Vytvořit pavouk
+</button>
+
+<button
+onclick="resetBracket()"
+class="bg-red-100 hover:bg-red-200 text-red-700 px-6 py-4 rounded-2xl font-bold"
+>
+Reset
+</button>
+
+</div>
+</div>
+
+<div id="bracket" class="overflow-x-auto"></div>
+
+</div>
+
+<script>
+let rounds = [];
+
+function shuffle(array){
+    for(let i=array.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [array[i],array[j]]=[array[j],array[i]];
+    }
+    return array;
+}
+
+function generateBracket(){
+
+    const count = parseInt(document.getElementById("count").value);
+
+    let players=[];
+
+    for(let i=1;i<=count;i++){
+        players.push("Žák " + i);
+    }
+
+    shuffle(players);
+
+    rounds=[];
+
+    let current = [...players];
+
+    while(current.length > 1){
+
+        let round=[];
+
+        for(let i=0;i<current.length;i+=2){
+
+            round.push({
+                player1: current[i] || "VOLNO",
+                player2: current[i+1] || "VOLNO",
+                winner: ""
+            });
+
+        }
+
+        rounds.push(round);
+
+        current = new Array(Math.ceil(current.length/2)).fill("");
+
+    }
+
+    renderBracket();
+}
+
+function selectWinner(roundIndex, matchIndex, winner){
+
+    rounds[roundIndex][matchIndex].winner = winner;
+
+    if(rounds[roundIndex + 1]){
+
+        const nextMatch = Math.floor(matchIndex / 2);
+
+        if(matchIndex % 2 === 0){
+            rounds[roundIndex + 1][nextMatch].player1 = winner;
+        }else{
+            rounds[roundIndex + 1][nextMatch].player2 = winner;
+        }
+    }
+
+    renderBracket();
+}
+
+function renderBracket(){
+
+    const titles = [
+        "1. kolo",
+        "Čtvrtfinále",
+        "Semifinále",
+        "Finále"
+    ];
+
+    let html = '<div class="flex gap-10 items-start min-w-max pb-10">';
+
+    rounds.forEach((round, roundIndex)=>{
+
+        html += `
+        <div class="round-column space-y-6">
+
+            <div class="bg-slate-900 text-white rounded-2xl p-4 text-center font-black text-xl shadow-lg">
+                ${titles[roundIndex] || ("Kolo " + (roundIndex+1))}
+            </div>
+        `;
+
+        round.forEach((match, matchIndex)=>{
+
+            html += `
+            <div class="match">
+
+                <div class="text-sm font-bold uppercase tracking-wide text-slate-500 mb-4">
+                    Zápas ${matchIndex+1}
+                </div>
+
+                <div class="space-y-3">
+
+                    <button
+                    onclick="selectWinner(${roundIndex},${matchIndex},'${match.player1}')"
+                    class="w-full text-left p-4 rounded-2xl border-2 font-bold transition-all
+                    ${match.winner === match.player1
+                        ? 'bg-green-200 border-green-500'
+                        : 'bg-white border-slate-300 hover:border-slate-500'}"
+                    >
+                    ${match.player1 || 'Čeká na hráče'}
+                    </button>
+
+                    <button
+                    onclick="selectWinner(${roundIndex},${matchIndex},'${match.player2}')"
+                    class="w-full text-left p-4 rounded-2xl border-2 font-bold transition-all
+                    ${match.winner === match.player2
+                        ? 'bg-green-200 border-green-500'
+                        : 'bg-white border-slate-300 hover:border-slate-500'}"
+                    >
+                    ${match.player2 || 'Čeká na hráče'}
+                    </button>
+
+                </div>
+
+                ${match.winner ? `
+                <div class="mt-4 bg-green-100 border border-green-400 rounded-2xl p-3 text-center font-bold text-green-800">
+                    Postupuje: ${match.winner}
+                </div>
+                ` : ''}
+
+            </div>
+            `;
+        });
+
+        html += '</div>';
+
+    });
+
+    html += '</div>';
+
+    document.getElementById("bracket").innerHTML = html;
+}
+
+function resetBracket(){
+    rounds=[];
+    document.getElementById("bracket").innerHTML="";
+}
+</script>
+
+</body>
+</html>
